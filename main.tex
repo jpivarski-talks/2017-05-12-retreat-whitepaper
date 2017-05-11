@@ -79,6 +79,7 @@ Once a workflow has been constructed, it is submitted to the server where the da
 
 At no point is a large dataset transferred over the network: a user's query goes in and an aggregation comes out. Many users sharing the server share cache, which optimizes the use of resources, and the final result is a Python object that can be used for further analysis--- fitting, statistics, or visualization using standard tools.
 
+%% % Example of submitting query, watching histograms fill while it runs, blocking for a final result and fitting it with PyROOT has been commented out for space.
 
 %% \begin{minted}{python}
 %% pending = workflow.submit()                            # submit the query
