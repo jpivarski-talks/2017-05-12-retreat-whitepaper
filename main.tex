@@ -8,37 +8,37 @@
 \maketitle
 
 \begin{abstract}
-HEP analysis is typically procedural: users implement arbitrary code in a procedural language, typically oriented toward a piece of code that is executed per-event.  We believe the HEP community investigate in an analysis ecosystem that is oriented to \textit{query-based paradigms} instead, where users present the computing system with a high-level query; the computing system is then responsible for query compilation, planning, execution, and returning results.  We give example of one such approach, FemtoCode, and discuss how it could be evolved into a larger ecosystem that keeps and leverages investments in today's technologies such as ROOT and distributed computing.
+HEP analysis is typically procedural: users implement arbitrary code in a procedural language, typically oriented toward a piece of code that is executed per-event. We believe the HEP community investigate in an analysis ecosystem that is oriented to \textit{query-based paradigms} instead, where users present the computing system with a high-level query; the computing system is then responsible for query compilation, planning, execution, and returning results. We give example of one such approach, Femtocode, and discuss how it could be evolved into a larger ecosystem that keeps and leverages investments in today's technologies such as ROOT and distributed computing.
 \end{abstract}
 
 \section{Introduction}
 
-``Faster is better."  The adage is a bedrock belief among HEP analysts.  We believe significantly better science can be done if a computing system could return results over a lunch break versus overnight; or over a coffee break as opposed to a lunch break.
+``Faster is better." The adage is a bedrock belief among HEP analysts. We believe significantly better science can be done if a computing system could return results over a lunch break versus overnight; or over a coffee break as opposed to a lunch break.
 
-One outcome of the ``faster is better'' approach is significant investment in low-level, fast languages: given the timeline of the community's involvement in large-scale research computing, this has implied we have an ecosystem rooted in C++.  Along with other scientific communities, there has a been more recent uptake in Python as a scripting language for exploring datasets.
+One outcome of the ``faster is better'' approach is significant investment in low-level, fast languages: given the timeline of the community's involvement in large-scale research computing, this has implied we have an ecosystem rooted in C++. Along with other scientific communities, there has a been more recent uptake in Python as a scripting language for exploring datasets.
 
-Straight translation of C++ code to Python is likely to lead to a miserable user experience: the resulting program, while quicker to write for a typical graduate student, will be 10-100x slower.  This is because python is both a general purpose and a high-level language.  We propose the HEP community investigate in a domain-specific languages that have a narrow-purpose but expose high-level abstractions needed by analysts \footnotemark.  We claim:
+Straight translation of C++ code to Python is likely to lead to a miserable user experience: the resulting program, while quicker to write for a typical graduate student, will be 10-100x slower. This is because Python is both a general purpose and a high-level language. We propose the HEP community investigate in a domain-specific languages that have a narrow-purpose but expose high-level abstractions needed by analysts \footnotemark. We claim:
 
 \footnotetext{This approach is not foreign: GPU implementation of code is often significantly faster than CPU implementations because GPUs provide a more limited programming environment amenable to acceleration.}
 
 \begin{itemize}
-\item Such a domain-specific language (DSL) can be embedded inside a more well known language like python.
+\item Such a domain-specific language (DSL) can be embedded inside a more well known language like Python.
 \item The DSL can be accelerated to be faster than C++/ROOT/event-loop techniques used today.
 \item The overarching approach can leverage today's file formats and distributed computing infrastructure, but providing the highest possible event rates may require specialized computing resources.
 \end{itemize}
 
-To justify, this claim, we present preliminary results from the DIANA/HEP team's work on FemtoCode and HistoGrammar, then discuss how this can evolve from existing computing models.
+To justify, this claim, we present preliminary results from the DIANA/HEP team's work on Femtocode and Histogrammar, then discuss how this can evolve from existing computing models.
 
-\section{FemtoCode and HistoGrammar: A short overview}
+\section{Femtocode and Histogrammar: overview}
 
-TODO: give the most high-level overview of the two concepts.  MAX ONE PAGE.  Should involve a simple example that touches both.
+TODO: give the most high-level overview of the two concepts. MAX ONE PAGE. Should involve a simple example that touches both.
 
-\section{Preliminary FemtoCode Results}
+\section{Preliminary Femtocode results}
 
-TODO: Pick the favorite result from the poster and copy/paste it here.  Result should have impact and be straightforward to explain.
+TODO: Pick the favorite result from the poster and copy/paste it here. Result should have impact and be straightforward to explain.
 
-\section{Computing Model Discussion}
+\section{Computing model discussion}
 
-TODO: Approaches like FemtoCode / HistoGrammar don't necessarily imply we need to dump ROOT and those corresponding investments, but we can continuously evolve on top of that base.
+TODO: Approaches like Femtocode/Histogrammar don't necessarily imply we need to dump ROOT and those corresponding investments, but we can continuously evolve on top of that base.
 
 \end{document}
