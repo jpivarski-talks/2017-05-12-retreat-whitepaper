@@ -1,5 +1,8 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
+\usepackage{minted}
+\usepackage{fullpage}
+\usepackage{hyperref}
 
 \begin{document}
 
@@ -17,7 +20,7 @@ HEP analysis is typically procedural: users implement arbitrary code in a proced
 
 One outcome of the ``faster is better'' approach is significant investment in low-level, fast languages: given the timeline of the community's involvement in large-scale research computing, this has implied we have an ecosystem rooted in C++. Along with other scientific communities, there has a been more recent uptake in Python as a scripting language for exploring datasets.
 
-Straight translation of C++ code to Python is likely to lead to a miserable user experience: the resulting program, while quicker to write for a typical graduate student, will be 10-100x slower. This is because Python is both a general purpose and a high-level language. We propose the HEP community investigate in a domain-specific languages that have a narrow-purpose but expose high-level abstractions needed by analysts \footnotemark. We claim:
+Straight translation of C++ code to Python is likely to lead to a miserable user experience: the resulting program, while quicker to write for a typical graduate student, will be 10--100$\times$ slower. This is because Python is both a general purpose and a high-level language. We propose the HEP community investigate in a domain-specific languages that have a narrow-purpose but expose high-level abstractions needed by analysts\footnotemark. We claim:
 
 \footnotetext{This approach is not foreign: GPU implementation of code is often significantly faster than CPU implementations because GPUs provide a more limited programming environment amenable to acceleration.}
 
@@ -27,11 +30,67 @@ Straight translation of C++ code to Python is likely to lead to a miserable user
 \item The overarching approach can leverage today's file formats and distributed computing infrastructure, but providing the highest possible event rates may require specialized computing resources.
 \end{itemize}
 
-To justify, this claim, we present preliminary results from the DIANA/HEP team's work on Femtocode and Histogrammar, then discuss how this can evolve from existing computing models.
+To justify this claim, we present preliminary results from the DIANA/HEP team's work on Femtocode and Histogrammar, then discuss how this can evolve from existing computing models.
 
 \section{Femtocode and Histogrammar: overview}
 
-TODO: give the most high-level overview of the two concepts. MAX ONE PAGE. Should involve a simple example that touches both.
+Femtocode is a query language for objects with nested structure, such as arbitrary-length lists of particle objects. It may be viewed as an extension of SQL, adding loops over nested structure, or a restriction of Python, removing unbounded loops. Like basic SQL, Femtocode is a total functional language\footnotemark with perfect referential transparency and value-based equality. However, it has the expression syntax of Python, using higher-order methods like {\tt map} and {\tt reduce} instead of side-effect generating statements in explicit {\tt for} loops.
+
+\footnotetext{Turner, D.A. (2004-07-28), "\href{http://www.jucs.org/jucs_10_7/total_functional_programming}{Total Functional Programming}", {\it Journal of Universal Computer Science,} {\bf 10} (7): 751–768, doi:\href{http://www.jucs.org/doi?doi=10.3217/jucs-010-07-0751}{10.3217/jucs-010-07-0751}}
+
+Femtocode usually would not be written as a source file, but embedded as quoted snippets within a general purpose language. This is similar to the use of regular expressions within a more expressive language that controls program flow. The following example illustrates this embedding. The host language is Python, and Femtocode is in the quoted strings. All strings in this workflow share a context (see the same variables).
+
+\begin{minted}{python}
+workflow = session.source("b-physics")                 # pull from a named dataset
+    .define(goodmuons = "muons.filter(m => m.pt > 5)") # muons with pt > 5 are good
+    .filter("goodmuons.size >= 2")                     # keep events with at least two
+    .define(dimuon = """
+        mu1, mu2 = goodmuons.maxby(m => m.pt, 2);      # pick the top two by pt
+        energy = mu1.E + mu2.E;                        # compute imploded energy/momentum
+        px = mu1.px + mu2.px;
+        py = mu1.py + mu2.py;
+        pz = mu1.pz + mu2.pz;
+
+        rec(mass = sqrt(energy**2 - px**2 - py**2 - pz**2),
+            pt = sqrt(px**2 + py**2),
+            phi = atan2(py, px),
+            eta = log((energy + pz)/(energy - pz))/2)  # construct a record as output
+        """)
+    .bundle(                                           # make a bundle of plots
+        mass = bin(120, 0, 12, "dimuon.mass"),         # using the variables we've made
+        pt = bin(100, 0, 100, "dimuon.pt"),
+        eta = bin(100, -5, 5, "dimuon.eta"),
+        phi = bin(314, 0, 2*pi, "dimuon.phi + pi"),
+        muons = loop("goodmuons", "mu", bundle(        # also make plots with one muon per entry
+            pt = bin(100, 0, 100, "mu.pt"),
+            eta = bin(100, -5, 5, "mu.eta"),
+            phi = bin(314, -pi, pi, "mu.phi")
+        ))
+    )
+\end{minted}
+
+The above statement defines a Python object, {\tt workflow}, that expresses what a user wants to calculate. It can be read as a chain from {\tt session.source("b-physics")}, through a definition of {\tt goodmuons}, through a cut on {\tt goodmuons.size}, to a definition of a dimuon record ({\tt rec}) with four fields ({\tt mass}, {\tt pt}, {\tt phi}, {\tt eta}), and finally to a bundle of histograms.
+
+At this point, the linear structure of the chain splits into an arbitrary-depth tree. The linear part transforms the input data stream into a new stream, and the tree-like part aggregates the stream into a fixed-size structure to return to the user. Usually, this aggregated structure is a bundle of histograms, filled with data expressed by Femtocode snippets (such as {\tt "dimuon.phi + pi"}). This grammar of histograms is an existing product, Histogrammar\footnotemark.
+
+\footnotetext{\url{http://histogrammar.org}}
+
+Once a workflow has been constructed, it is submitted to the server where the data are located. There, a just-in-time compiler takes advantage of restrictions in the language to transform the user's request into a series of fast, vectorized statements and distributes the workload. Partial aggregations are continuously returned to the user, so that an ill-conceived job may be canceled early, and the server remembers recent queries so that the client may disconnect and reconnect during a job without dropping the results.
+
+At no point is a large dataset transferred over the network: a user's query goes in and an aggregation comes out. Many users sharing the server share cache, which optimizes the use of resources, and the final result is a Python object that can be used for further analysis--- fitting, statistics, or visualization using standard tools.
+
+
+%% \begin{minted}{python}
+%% pending = workflow.submit()                            # submit the query
+%% pending["mass"].plot()                                 # and plot results while they accumulate
+%% pending["muons"]["pt"].plot()                          # (they'll be animated)
+
+%% blocking = pending.await()                             # stop the code until the result is in
+
+%% massplot = blocking.plot.root("mass")                  # convert to a familiar format, like ROOT
+%% massplot.Fit("gaus")                                   # and use that package's tools
+%% \end{minted}
+
 
 \section{Preliminary Femtocode results}
 
