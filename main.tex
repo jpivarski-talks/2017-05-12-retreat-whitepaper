@@ -34,11 +34,11 @@ To justify this claim, we present preliminary results from the DIANA/HEP team's 
 
 \section{Femtocode and Histogrammar: overview}
 
-Femtocode is a query language for objects with nested structure, such as arbitrary-length lists of particle objects. It may be viewed as an extension of SQL, adding loops over nested structure, or a restriction of Python, removing unbounded loops. Like basic SQL, Femtocode is a total functional language\footnotemark with perfect referential transparency and value-based equality. However, it has the expression syntax of Python, using higher-order methods like {\tt map} and {\tt reduce} instead of side-effect generating statements in explicit {\tt for} loops.
+Femtocode is a query language for objects with nested structure, such as arbitrary-length lists of particle objects. It may be viewed as an extension of SQL, adding loops over nested structure, or as a restriction of Python, removing runtime typing and class inheritance in favor of a static type-check (inferred, structural, and dependent), and removing unbounded loops (and with it, Turing completeness). Like basic SQL, Femtocode is a total functional language\footnotemark with perfect referential transparency and value-based equality. However, it has the expression syntax of Python, using higher-order methods like {\tt map} and {\tt reduce} instead of side-effect generating statements in explicit {\tt for} loops.
 
 \footnotetext{Turner, D.A. (2004-07-28), "\href{http://www.jucs.org/jucs_10_7/total_functional_programming}{Total Functional Programming}", {\it Journal of Universal Computer Science,} {\bf 10} (7): 751–768, doi:\href{http://www.jucs.org/doi?doi=10.3217/jucs-010-07-0751}{10.3217/jucs-010-07-0751}}
 
-Femtocode usually would not be written as a source file, but embedded as quoted snippets within a general purpose language. This is similar to the use of regular expressions within a more expressive language that controls program flow. The following example illustrates this embedding. The host language is Python, and Femtocode is in the quoted strings. All strings in this workflow share a context (see the same variables).
+Femtocode usually would not be written as a source file, but embedded in quoted snippets within a general purpose language. This is similar to the use of regular expressions within a more expressive language that controls program flow. The following example illustrates this embedding. The host language is Python, and Femtocode is in the quoted strings. All strings in this workflow share a context (see the same variables).
 
 \begin{minted}{python}
 workflow = session.source("b-physics")                 # pull from a named dataset
@@ -61,8 +61,8 @@ workflow = session.source("b-physics")                 # pull from a named datas
         pt = bin(100, 0, 100, "dimuon.pt"),
         eta = bin(100, -5, 5, "dimuon.eta"),
         phi = bin(314, 0, 2*pi, "dimuon.phi + pi"),
-        muons = loop("goodmuons", "mu", bundle(        # also make plots with one muon per entry
-            pt = bin(100, 0, 100, "mu.pt"),
+        muons = loop("goodmuons", "mu", bundle(        # also make plots with one muon
+            pt = bin(100, 0, 100, "mu.pt"),            # per entry
             eta = bin(100, -5, 5, "mu.eta"),
             phi = bin(314, -pi, pi, "mu.phi")
         ))
@@ -71,11 +71,11 @@ workflow = session.source("b-physics")                 # pull from a named datas
 
 The above statement defines a Python object, {\tt workflow}, that expresses what a user wants to calculate. It can be read as a chain from {\tt session.source("b-physics")}, through a definition of {\tt goodmuons}, through a cut on {\tt goodmuons.size}, to a definition of a dimuon record ({\tt rec}) with four fields ({\tt mass}, {\tt pt}, {\tt phi}, {\tt eta}), and finally to a bundle of histograms.
 
-At this point, the linear structure of the chain splits into an arbitrary-depth tree. The linear part transforms the input data stream into a new stream, and the tree-like part aggregates the stream into a fixed-size structure to return to the user. Usually, this aggregated structure is a bundle of histograms, filled with data expressed by Femtocode snippets (such as {\tt "dimuon.phi + pi"}). This grammar of histograms is an existing product, Histogrammar\footnotemark.
+At this point, the linear structure of the chain splits into an arbitrary-depth tree. The linear part transforms the input data stream into a new stream, and the tree-like part aggregates the stream into a fixed-size structure to return to the user. Usually, this aggregated structure is a bundle of histograms, filled with data expressed by Femtocode snippets (such as {\tt "dimuon.phi + pi"}). This grammar of histograms is an existing product with a language-independent specification, Histogrammar\footnotemark.
 
 \footnotetext{\url{http://histogrammar.org}}
 
-Once a workflow has been constructed, it is submitted to the server where the data are located. There, a just-in-time compiler takes advantage of restrictions in the language to transform the user's request into a series of fast, vectorized statements and distributes the workload. Partial aggregations are continuously returned to the user, so that an ill-conceived job may be canceled early, and the server remembers recent queries so that the client may disconnect and reconnect during a job without dropping the results.
+Once a workflow has been constructed, it is submitted to the server where the data are located. There, a just-in-time compiler takes advantage of restrictions in the language to transform the user's request into a series of fast, vectorized statements over arrays of numbers and distributes the workload. Partial aggregations are continuously returned to the user, so that an ill-conceived job may be canceled early, and the server remembers recent queries so that the client may disconnect and reconnect during a job without dropping the results.
 
 At no point is a large dataset transferred over the network: a user's query goes in and an aggregation comes out. Many users sharing the server share cache, which optimizes the use of resources, and the final result is a Python object that can be used for further analysis--- fitting, statistics, or visualization using standard tools.
 
