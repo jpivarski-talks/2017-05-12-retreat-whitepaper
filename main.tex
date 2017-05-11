@@ -95,7 +95,25 @@ At no point is a large dataset transferred over the network: a user's query goes
 
 \section{Preliminary Femtocode results}
 
-TODO: Pick the favorite result from the poster and copy/paste it here. Result should have impact and be straightforward to explain.
+%% TODO: Pick the favorite result from the poster and copy/paste it here. Result should have impact and be straightforward to explain.
+
+Query execution would have to be substantially faster than its equivalent with today's software for users to prefer it over private skims (downloaded subsets of the data). It currently takes weeks to produce a skim, but once downloaded, users can explore data in real-time by making plots instantaneously. A query system must have a latency on human timescales: no more than a few seconds for most queries.
+
+Therefore, performance tests have been conducted at every stage of the development process. We can parameterize a query's time to completion as three terms:
+\begin{equation}
+\mbox{time} = C_1 + C_2(n_{\mbox{\scriptsize cores}}) \cdot N_{\mbox{\scriptsize subtasks}} + \frac{C_3}{n_{\mbox{\scriptsize cores}}} \cdot N_{\mbox{\scriptsize events}}
+\end{equation}
+where $C_1$ is a constant, dominated by $70$~ms of compilation time, $C_2(n_{\mbox{\scriptsize cores}})$ is the time spent managing subtasks, a complex concurrent process affected by Amdahl's law, and $C_3$ is the part that actually executes the user's query. Since it is embarrassingly parallel, this term is inversely proportional to $n_{\mbox{\scriptsize cores}}$.
+
+In several informal tests during development, the time managing a subtask was found to be $C_2(1) \sim 1$~ms. Input data should be divided into partitions such that this never dominates: at least a million values each.
+
+On a given system ({\tt cmslpc.fnal.gov}), the fastest possible processing is given by a C {\tt for} loop adding numbers from an array in memory, compiled with {\tt -O3}: $250$~MHz. Femtocode gets compiled into a form resembling this minimal-overhead loop, so this is our goal. The latest test resulted in $54$~MHz, though an optimization developed outside the main codebase appears to gain an additional factor of four. For comparison, the fastest that the idiomatic C++ equivalent would perform, constructing and deleting objects on a {\tt std::vector<Particle>}, is $31$~MHz.
+
+Not every query is lucky enough to find its input data cached in memory. Reading the same data from magnetic disk reduces the rate to $2.8$~MHz, using local ROOT files as a backend. By comparison, executing the query with {\tt TTree::Draw} is $1.5$~MHz, and $0.018$~MHz in a CMSSW EDAnalyzer, where the dramatic slow-down is due to reading data from disk not needed for this query, but necessary to present users with an object-oriented view. This factor of 3000 ($54$~MHz/$0.018$~MHz) is the difference between filling histograms with today's technology and Femtocode.
+
+All of the comparisons above are single-threaded. With more processes on the same machine, linear scaling is only spoiled by contention on the physical memory bus, a limit of $2000$~MHz on most systems. With specialized hardware\footnotemark, this limit can be raised to $8000$~MHz by putting the input cache on Knight's Landing MCDRAM with 128 threads, and it can be raised to $57000$~MHz by performing the equivalent on a Tesla P100-SXM2 GPU.
+
+\footnotetext{doi:\href{https://zenodo.org/badge/latestdoi/86692321}{10.5281/zenodo.569032}}
 
 \section{Computing model discussion}
 
