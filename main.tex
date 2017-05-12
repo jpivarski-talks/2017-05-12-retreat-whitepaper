@@ -6,39 +6,39 @@
 
 \begin{document}
 
-\title{Query-based Paradigms for HEP Analysis}
+\title{Domain Specific Languages and \\ Query-based Paradigm for HEP Analysis}
 
 \maketitle
 
 \begin{abstract}
-HEP analysis is typically procedural: users implement arbitrary code in a procedural language, typically oriented toward a piece of code that is executed per-event. We believe the HEP community investigate in an analysis ecosystem that is oriented to \textit{query-based paradigms} instead, where users present the computing system with a high-level query; the computing system is then responsible for query compilation, planning, execution, and returning results. We give example of one such approach, Femtocode, and discuss how it could be evolved into a larger ecosystem that keeps and leverages investments in today's technologies such as ROOT and distributed computing.
+HEP analysis is typically procedural: users implement arbitrary code in a procedural language,  oriented around code that is executed per-event. We believe the HEP community should invest in an analysis ecosystem that exposes a {\it query-based paradigm} instead, where users present the computing system with a high-level query in a {\it domain specific language}.  The computing system becomes responsible for query compilation, planning, execution, and returning results. We present an example of one such approach, Femtocode, and discuss how it could be evolved into a larger ecosystem that keeps and leverages investments in today's technologies such as ROOT and distributed computing.
 \end{abstract}
 
 \section{Introduction}
 
-``Faster is better." The adage is a bedrock belief among HEP analysts. We believe significantly better science can be done if a computing system could return results over a lunch break versus overnight; or over a coffee break as opposed to a lunch break.
+``Faster is better." The adage is a bedrock belief among HEP analysts. We believe significantly better science can be done if a computing system could return results over a lunch break rather than overnight, or over a coffee break as opposed to a lunch break.
 
-One outcome of the ``faster is better'' approach is significant investment in low-level, fast languages: given the timeline of the community's involvement in large-scale research computing, this has implied we have an ecosystem rooted in C++. Along with other scientific communities, there has a been more recent uptake in Python as a scripting language for exploring datasets.
+One outcome of the ``faster is better'' approach is significant investment in low-level, fast languages: given the timeline of the community's involvement in large-scale research computing, this has implied we have an ecosystem rooted in C++. Alongside C++, as seen in other scientific communities, there has a been recent uptake in Python as a scripting language for exploring our datasets.  Straight translation of C++ code to Python is likely to lead to a miserable user experience: the resulting program, while quicker to write for a typical graduate student, will be 10--100$\times$ slower. This is because Python is a general purpose, dynamic, high-level language.
 
-Straight translation of C++ code to Python is likely to lead to a miserable user experience: the resulting program, while quicker to write for a typical graduate student, will be 10--100$\times$ slower. This is because Python is both a general purpose and a high-level language. We propose the HEP community investigate in a domain-specific languages that have a narrow-purpose but expose high-level abstractions needed by analysts\footnotemark. We claim:
+Instead, the HEP community should investigate domain-specific languages (DSLs) that have narrow purpose but expose high-level abstractions needed by analysts\footnotemark. We claim:
 
 \footnotetext{This approach is not foreign: GPU implementation of code is often significantly faster than CPU implementations because GPUs provide a more limited programming environment amenable to acceleration.}
 
 \begin{itemize}
-\item Such a domain-specific language (DSL) can be embedded inside a more well known language like Python.
-\item The DSL can be accelerated to be faster than C++/ROOT/event-loop techniques used today.
-\item The overarching approach can leverage today's file formats and distributed computing infrastructure, but providing the highest possible event rates may require specialized computing resources.
+\item Such a domain-specific language (DSL) can be embedded inside a well known language like Python.
+\item The DSL can be faster than C++/ROOT/event-loop techniques used today.
+\item The overarching approach can leverage today's file formats and distributed computing infrastructure. However, providing the highest possible event rates may require specialized computing resources.
 \end{itemize}
 
 To justify this claim, we present preliminary results from the DIANA/HEP team's work on Femtocode and Histogrammar, then discuss how this can evolve from existing computing models.
 
 \section{Femtocode and Histogrammar: overview}
 
-Femtocode is a query language for objects with nested structure, such as arbitrary-length lists of particle objects. It may be viewed as an extension of SQL, adding loops over nested structure, or as a restriction of Python, removing runtime typing and class inheritance in favor of a static type-check (inferred, structural, and dependent), and removing unbounded loops (and with it, Turing completeness). Like basic SQL, Femtocode is a total functional language\footnotemark with perfect referential transparency and value-based equality. However, it has the expression syntax of Python, using higher-order methods like {\tt map} and {\tt reduce} instead of side-effect generating statements in explicit {\tt for} loops.
+Femtocode is a query language for objects with nested structure, such as arbitrary-length lists of particle objects. It may be viewed as an extension of SQL, introducing loops over nested structure, or as a restriction of Python, removing runtime types in favor of a static type-check (inferred, structural, and dependent), as well as removing unbounded loops (and with it, Turing completeness). Like basic SQL, Femtocode is a total functional language\footnotemark with perfect referential transparency and value-based equality. However, it has the expression syntax of Python, using higher-order methods like {\tt map} and {\tt reduce} instead of side-effect generating statements in explicit {\tt for} loops.
 
 \footnotetext{Turner, D.A. (2004-07-28), "\href{http://www.jucs.org/jucs_10_7/total_functional_programming}{Total Functional Programming}", {\it Journal of Universal Computer Science,} {\bf 10} (7): 751–768, doi:\href{http://www.jucs.org/doi?doi=10.3217/jucs-010-07-0751}{10.3217/jucs-010-07-0751}}
 
-Femtocode usually would not be written as a source file, but embedded in quoted snippets within a general purpose language. This is similar to the use of regular expressions within a more expressive language that controls program flow. The following example illustrates this embedding. The host language is Python, and Femtocode is in the quoted strings. All strings in this workflow share a context (see the same variables).
+Femtocode usually would not be written as a source file, but embedded in quoted snippets within a general purpose language. This is similar to the use of regular expressions within a more expressive language that controls program flow. The following example illustrates this embedding. The host language is Python, and Femtocode is in the quoted strings. All strings in this workflow share a context (same variables).
 
 \begin{minted}{python}
 workflow = session.source("b-physics")                 # pull from a named dataset
@@ -71,7 +71,7 @@ workflow = session.source("b-physics")                 # pull from a named datas
 
 The above statement defines a Python object, {\tt workflow}, that expresses what a user wants to calculate. It can be read as a chain from {\tt session.source("b-physics")}, through a definition of {\tt goodmuons}, through a cut on {\tt goodmuons.size}, to a definition of a dimuon record ({\tt rec}) with four fields ({\tt mass}, {\tt pt}, {\tt phi}, {\tt eta}), and finally to a bundle of histograms.
 
-At this point, the linear structure of the chain splits into an arbitrary-depth tree. The linear part transforms the input data stream into a new stream, and the tree-like part aggregates the stream into a fixed-size structure to return to the user. Usually, this aggregated structure is a bundle of histograms, filled with data expressed by Femtocode snippets (such as {\tt "dimuon.phi + pi"}). This grammar of histograms is an existing product with a language-independent specification, Histogrammar\footnotemark.
+At this point, the linear structure of the chain splits into an arbitrary-depth tree. The linear part transforms the input data stream into a new stream, and the tree-like part aggregates the stream into a fixed-size data structure to return to the user. Usually, this aggregated structure is a bundle of histograms, filled with data expressed by Femtocode snippets (such as {\tt "dimuon.phi + pi"}). This grammar of histograms is an existing product with a language-independent specification, Histogrammar\footnotemark.
 
 \footnotetext{\url{http://histogrammar.org}}
 
@@ -103,13 +103,13 @@ Therefore, performance tests have been conducted at every stage of the developme
 \begin{equation}
 \mbox{time to completion} = C_1 + C_2(n_{\mbox{\scriptsize cores}}) \cdot N_{\mbox{\scriptsize subtasks}} + \frac{C_3}{n_{\mbox{\scriptsize cores}}} \cdot N_{\mbox{\scriptsize events}}
 \end{equation}
-where $C_1$ is a constant, dominated by $70$~ms of compilation time, $C_2(n_{\mbox{\scriptsize cores}})$ is the time spent managing subtasks, a complex concurrent process affected by Amdahl's law, and $C_3$ is the part that actually executes the user's query. Since it is embarrassingly parallel, this term is inversely proportional to $n_{\mbox{\scriptsize cores}}$.
+where $C_1$ is a constant, dominated by $70$~ms of compilation time, $C_2(n_{\mbox{\scriptsize cores}})$ is the time spent managing subtasks, a complex concurrent process affected by Amdahl's law, and $C_3$ is the part that actually executes the user's query. Since this part is embarrassingly parallel, it is inversely proportional to $n_{\mbox{\scriptsize cores}}$.
 
 In several informal tests during development, the time managing a subtask was found to be $C_2(1) \sim 1$~ms. Input data should be divided into partitions such that this never dominates: at least a million values each.
 
-On a given system ({\tt cmslpc.fnal.gov}), the fastest possible processing is given by a {\tt for} loop adding numbers from an array in memory, compiled in C with {\tt -O3}: this is $250$~MHz. Femtocode gets compiled into a form resembling this minimal-overhead loop, so this is our goal. The latest test resulted in $54$~MHz, though an optimization developed outside the main codebase appears to gain an additional factor of four. For comparison, the fastest that idiomatic C++ could perform, constructing and deleting objects on a {\tt std::vector<Particle>}, is $31$~MHz.
+On a given system ({\tt cmslpc.fnal.gov}), the fastest possible computation is given by a {\tt for} loop over an array in memory, compiled in C with {\tt -O3}: this is $250$~MHz (64-bit floats loaded from one location in DRAM, subtracted from 1.0, and written to another location; the arithmetic is subdominant to memory access). Femtocode gets compiled into a form resembling this minimal-overhead loop, even if it is conceptually operating on particle objects. The latest test resulted in $54$~MHz. An optimization developed outside the main codebase yields an additional factor of four, so we expect this number to improve. For comparison, the fastest that idiomatic C++ could perform, constructing and deleting objects on a {\tt std::vector<Particle>}, is $31$~MHz (allocated on the stack) or $12$~MHz (on the heap).
 
-Not every query is lucky enough to find its input data cached in memory. Reading the same data from magnetic disk reduces the rate to $2.8$~MHz, using local ROOT files as a backend. By comparison, executing the query with {\tt TTree::Draw} is $1.5$~MHz, and $0.018$~MHz in a CMSSW EDAnalyzer, where the dramatic slow-down is due to reading data from disk not needed for this query, but necessary to present users with an object-oriented view. This factor of 3000 ($54$~MHz/$0.018$~MHz) is the difference between filling histograms with today's technology and with Femtocode.
+Not every query is lucky enough to find its input data cached in memory. Reading the same data from magnetic disk reduces the rate to $2.8$~MHz, using local ROOT files as a backend. By comparison, executing the query with {\tt TTree::Draw} is $1.5$~MHz, and $0.018$~MHz in a CMSSW EDAnalyzer, where the dramatic slow-down is due to reading data from disk not needed for this query, but necessary to present users with an object-oriented view. This factor of 3000 ($54$~MHz/$0.018$~MHz) is the difference between filling histograms with today's technology versus Femtocode without cache-misses.
 
 All of the comparisons above are single-threaded. With more processes on the same machine, linear scaling is only spoiled by contention on the physical memory bus, a limit of $2000$~MHz on most systems. With specialized hardware\footnotemark, this limit can be raised to $8000$~MHz by putting the input cache on Knight's Landing MCDRAM with 128 threads, and it can be raised to $57000$~MHz by performing the equivalent on a Tesla P100-SXM2 GPU.
 
@@ -117,6 +117,14 @@ All of the comparisons above are single-threaded. With more processes on the sam
 
 \section{Computing model discussion}
 
-TODO: Approaches like Femtocode/Histogrammar don't necessarily imply we need to dump ROOT and those corresponding investments, but we can continuously evolve on top of that base.
+The computing paradigm and style presented in the previous two sections is a departure from the traditional event loop-driven, batch-centric computing architecture that has characterized HEP resources for 30 years.  What does this mean for the existing investments in software and computing infrastructure?
+
+While Femtocode's eventual goal is to be used as a database-like query system, it can also be used as a single-user system, performing queries against local ROOT files. In fact, measurements of $C_3$ (above) were performed this way. Femtocode queries could also be batched into a job and distributed across multiple physical sites: one would still derive benefits in event rates, but overall latency/responsiveness would be similar to today's GIRD systems.
+
+However, end-stage analysis--- where our event-rate limitations today are in the tens of kHz--- do not drive the majority of the distributed computing costs.  We believe that sites will naturally evolve into ``reconstruction centers'' (strongly oriented to CPU) and ``analysis centers'' (containing an improved balance between IO and CPU)\footnotemark.  The analysis centers {\it may} be few enough to have a custom interface like Femtocode.  Even with a batch interface, as it is a simpler distributed computing problem, they could be better optimized for responsiveness than today's generic GRID site.  A system like Femtocode then scales down to a container on a user's laptop.
+
+\footnotetext{There is no expectation that CPU-centric and balanced sites have any relationship to today's Tier-1 and Tier-2 centers.  Due to site design, many Tier-2 centers have better IO capacity than Tier-1 sites.}
+
+Given the expected small size of user-level datasets in the HL-LHC era--- and the fact this is more IO bandwidth and latency driven--- we believe the analysis centers will be less than 10\% of the overall computing hardware budget in the HL-LHC era.
 
 \end{document}
